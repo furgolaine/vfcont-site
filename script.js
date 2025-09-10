@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const contactButtons = document.querySelectorAll('.contact-btn, .contact-btn-hero');
     contactButtons.forEach(button => {
         button.addEventListener('click', function() {
-            const whatsappNumber = '5527991227720'; // Número do WhatsApp
+            const whatsappNumber = '552731912220'; // Número do WhatsApp
             const message = encodeURIComponent('Olá! Gostaria de saber mais sobre os serviços de contabilidade.');
             const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
             window.open(whatsappUrl, '_blank');
