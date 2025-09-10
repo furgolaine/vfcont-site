@@ -1,0 +1,27 @@
+{
+  "name": "vf-contabilidade-backend",
+  "version": "1.0.0",
+  "description": "Backend para o site de contabilidade VF com API de leads, integração WhatsApp e Facebook Conversions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "contabilidade",
+    "leads",
+    "whatsapp",
+    "facebook",
+    "ir",
+    "calculadora"
+  ],
+  "author": "VF Contabilidade",
+  "license": "ISC",
+  "dependencies": {
+    "bullmq": "^5.58.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "redis": "^5.8.2"
+  }
+}
