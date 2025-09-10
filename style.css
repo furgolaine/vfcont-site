@@ -24,9 +24,9 @@ body {
 
 /* Cores principais */
 :root {
-    --primary-gold: #D4A574;
-    --secondary-gold: #F4A261;
-    --accent-orange: #E76F51;
+    --primary-gold: #fcb636;
+    --secondary-gold: #f0e32b;
+    --accent-orange: #fcdd30;
     --dark-bg: #000;
     --light-text: #fff;
     --gray-text: #ccc;
@@ -439,7 +439,7 @@ body {
 
 .directions-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(244, 162, 97, 0.4);
+    box-shadow: 0 5px 15px rgba(240, 213, 59, 0.4);
 }
 
 /* Rodapé */
