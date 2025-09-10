@@ -139,7 +139,7 @@ new Worker('irReminders', async (job) => {
 setupMonthlyReminder().catch(err => console.error('Erro ao configurar lembrete mensal:', err));
 
 app.listen(port, () => {
-    console.log(`Backend rodando em http://localhost:${port}`);
+    console.log(`Backend rodando em https://vfcont-site-production.up.railway.app:${port}`);
     console.log('Certifique-se de que o PostgreSQL e o Redis estão rodando.');
 });
 

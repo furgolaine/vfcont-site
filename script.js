@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                const response = await fetch('http://localhost:3000/leads', {
+                const response = await fetch('https://vfcont-site-production.up.railway.app/leads', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -224,7 +224,7 @@ function showCalculator() {
         const previdencia = parseFloat(document.getElementById('previdencia').value) || 0;
 
         try {
-            const response = await fetch('http://localhost:3000/calculate-ir', {
+            const response = await fetch('https://vfcont-site-production.up.railway.app/calculate-ir', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
