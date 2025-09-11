@@ -555,18 +555,19 @@ body {
         margin: 25px 0;
     }
     
-    /* SCROLL HORIZONTAL PARA ÍCONES DE SERVIÇOS NO MOBILE */
+    /* SCROLL HORIZONTAL PARA ÍCONES DE SERVIÇOS NO MOBILE - CORRIGIDO */
     .services-icons {
         display: flex;
         overflow-x: auto;
         overflow-y: hidden;
         gap: 15px;
-        padding: 30px 20px;
+        padding: 30px 20px 30px 60px; /* Aumentado padding-left para mover mais à direita */
         flex-wrap: nowrap;
         scroll-behavior: smooth;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none; /* Firefox */
         -ms-overflow-style: none; /* IE/Edge */
+        justify-content: flex-start; /* Alinha os itens à esquerda do container */
     }
     
     /* Esconde a scrollbar no Chrome/Safari */
@@ -651,6 +652,14 @@ body {
         font-size: 14px;
     }
     
+    .services-image {
+        order: 2; /* Move a imagem para baixo no mobile */
+    }
+    
+    .services-list {
+        order: 1; /* Move o texto para cima no mobile */
+    }
+
     .map-container {
         height: 250px;
         order: 2;
@@ -761,7 +770,7 @@ body {
     }
     
     .services-icons {
-        padding: 25px 15px;
+        padding: 25px 15px 25px 50px; /* Ajustado para telas muito pequenas - mais espaço à direita */
         gap: 12px;
     }
     
