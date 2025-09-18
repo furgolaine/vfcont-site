@@ -4,6 +4,7 @@ const Redis = require('ioredis');
 const { Queue, Worker } = require('bullmq');
 const axios = require('axios'); // Importar axios
 const crypto = require('crypto'); // Importar crypto para hashing
+const url = require('url'); // Importar módulo url para parsear REDIS_URL
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -20,12 +21,25 @@ const pool = new Pool({
 });
 
 // Configuração do Redis para BullMQ
-const redisConfig = {
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD,
-    tls: process.env.REDIS_TLS_URL ? { rejectUnauthorized: false } : undefined, // Adiciona suporte a TLS para Redis em produção
-};
+let redisConfig;
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_TLS_URL; // Prioriza REDIS_URL ou REDIS_TLS_URL
+
+if (redisUrl) {
+    const parsedUrl = url.parse(redisUrl);
+    redisConfig = {
+        host: parsedUrl.hostname,
+        port: parsedUrl.port || 6379,
+        password: parsedUrl.auth ? parsedUrl.auth.split(':')[1] : undefined,
+        tls: parsedUrl.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
+    };
+} else {
+    redisConfig = {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || 6379,
+        password: process.env.REDIS_PASSWORD,
+        tls: process.env.REDIS_TLS_URL ? { rejectUnauthorized: false } : undefined,
+    };
+}
 
 // Fila para mensagens do WhatsApp
 const whatsappQueue = new Queue('whatsappMessages', { connection: redisConfig });
@@ -91,7 +105,7 @@ const sendFacebookConversion = async (lead) => {
 };
 
 // Worker para processar a fila do WhatsApp
-new Worker("whatsappMessages", async (job) => {
+new Worker('whatsappMessages', async (job) => {
     const { lead, messageBody } = job.data;
     await sendWhatsappMessage(lead, messageBody);
 }, { connection: redisConfig });
@@ -112,7 +126,7 @@ app.post('/leads', async (req, res) => {
         const newLead = result.rows[0];
 
         // Agendar mensagem WhatsApp após 10 minutos
-        await whatsappQueue.add("sendWhatsapp", { lead: newLead, messageBody: `Olá ${newLead.id}, obrigado por usar nossa calculadora.` }, { delay: 10 * 60 * 1000 }); // 10 minutos
+        await whatsappQueue.add('sendWhatsapp', { lead: newLead, messageBody: `Olá ${newLead.id}, obrigado por usar nossa calculadora.` }, { delay: 10 * 60 * 1000 }); // 10 minutos
 
         // Enviar conversão para Facebook
         await sendFacebookConversion(newLead);
