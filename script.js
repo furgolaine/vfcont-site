@@ -1,5 +1,8 @@
 // Funcionalidades do site VF Contabilidade
 
+// Configuração do backend - usando variável de ambiente
+const BACKEND_URL = 'https://vfcont-site-production.up.railway.app';
+
 // Inicialização do Google Maps
 function initMap() {
     const escritorio = { lat: -20.3155, lng: -40.2925 }; // Coordenadas aproximadas de Vila Velha, ES
@@ -96,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                const response = await fetch('https://vfcont-site-production.up.railway.app:3000/leads', {
+                const response = await fetch(`${BACKEND_URL}/leads`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -224,7 +227,7 @@ function showCalculator() {
         const previdencia = parseFloat(document.getElementById('previdencia').value) || 0;
 
         try {
-            const response = await fetch('https://vfcont-site-production.up.railway.app:3000/calculate-ir', {
+            const response = await fetch(`${BACKEND_URL}/calculate-ir`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
