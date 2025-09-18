@@ -2,16 +2,16 @@ const express = require('express');
 const { Pool } = require('pg');
 const Redis = require('ioredis');
 const { Queue, Worker } = require('bullmq');
-const axios = require('axios'); // Importar axios
-const crypto = require('crypto'); // Importar crypto para hashing
-const url = require('url'); // Importar módulo url para parsear REDIS_URL
+const axios = require('axios');
+const crypto = require('crypto');
+const url = require('url');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Configuração do PostgreSQL
+
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
@@ -20,7 +20,7 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-// Configuração do Redis para BullMQ
+
 let redisConfig;
 const redisUrl = process.env.REDIS_URL || process.env.REDIS_TLS_URL; // Prioriza REDIS_URL ou REDIS_TLS_URL
 
@@ -44,7 +44,7 @@ if (redisUrl) {
 // Fila para mensagens do WhatsApp
 const whatsappQueue = new Queue('whatsappMessages', { connection: redisConfig });
 
-// Função para enviar mensagem via API do WhatsApp (implementação real)
+
 const sendWhatsappMessage = async (lead, messageBody) => {
     try {
         console.log(`Enviando mensagem WhatsApp para ${lead.telefone} (Lead ID: ${lead.id})`);
@@ -71,7 +71,6 @@ const sendWhatsappMessage = async (lead, messageBody) => {
     }
 };
 
-// Função para enviar conversão via API do Facebook Conversions (implementação real)
 const sendFacebookConversion = async (lead) => {
     try {
         console.log(`Enviando conversão para Facebook Conversions API para ${lead.email} (Lead ID: ${lead.id})`);
@@ -104,13 +103,13 @@ const sendFacebookConversion = async (lead) => {
     }
 };
 
-// Worker para processar a fila do WhatsApp
+
 new Worker('whatsappMessages', async (job) => {
     const { lead, messageBody } = job.data;
     await sendWhatsappMessage(lead, messageBody);
 }, { connection: redisConfig });
 
-// Endpoint para captação de leads
+
 app.post('/leads', async (req, res) => {
     const { nome, email, telefone } = req.body;
 
@@ -125,10 +124,9 @@ app.post('/leads', async (req, res) => {
         );
         const newLead = result.rows[0];
 
-        // Agendar mensagem WhatsApp após 10 minutos
+
         await whatsappQueue.add('sendWhatsapp', { lead: newLead, messageBody: `Olá ${newLead.id}, obrigado por usar nossa calculadora.` }, { delay: 10 * 60 * 1000 }); // 10 minutos
 
-        // Enviar conversão para Facebook
         await sendFacebookConversion(newLead);
 
         res.status(201).json({ message: 'Lead cadastrado com sucesso!', lead: newLead });
@@ -138,16 +136,15 @@ app.post('/leads', async (req, res) => {
     }
 });
 
-// Endpoint para a calculadora de IR (exemplo, a lógica pode ser mais complexa)
+
 app.post('/calculate-ir', (req, res) => {
     const { rendaBruta, deducoes, dependentes, previdencia } = req.body;
 
-    // Lógica da calculadora de IR (simplificada para o exemplo)
+
     const baseCalculo = Math.max(0, rendaBruta - deducoes - (dependentes * 2275.08) - previdencia);
     let impostoDevido = 0;
 
     if (baseCalculo > 0) {
-        // Exemplo de faixas simplificadas
         if (baseCalculo <= 22847.76) {
             impostoDevido = 0;
         } else if (baseCalculo <= 33919.80) {
@@ -162,16 +159,15 @@ app.post('/calculate-ir', (req, res) => {
     res.json({ impostoDevido: impostoDevido.toFixed(2), baseCalculo: baseCalculo.toFixed(2) });
 });
 
-// Lógica para agendamento de lembretes de IR (exemplo com BullMQ)
+
 const irReminderQueue = new Queue('irReminders', { connection: redisConfig });
 
-// Adicionar um job recorrente para o último dia de cada mês
+
 const setupMonthlyReminder = async () => {
-    // Remover jobs recorrentes existentes para evitar duplicação em testes
+
     await irReminderQueue.removeJobs('monthlyReminder');
 
-    // Adicionar job recorrente para o último dia de cada mês às 9h da manhã
-    // Cron: '0 9 L * *' -> Minuto 0, Hora 9, Último dia do mês, Qualquer mês, Qualquer dia da semana
+
     await irReminderQueue.add('monthlyReminder', { type: 'IR_REMINDER' }, {
         repeat: { cron: '0 9 L * *' },
         jobId: 'monthlyReminder'
@@ -179,7 +175,7 @@ const setupMonthlyReminder = async () => {
     console.log('Lembrete mensal de IR agendado para o último dia de cada mês às 09:00.');
 };
 
-// Worker para processar lembretes de IR
+
 new Worker('irReminders', async (job) => {
     if (job.data.type === 'IR_REMINDER') {
         console.log('Disparando lembrete mensal de IR...');
@@ -191,7 +187,7 @@ new Worker('irReminders', async (job) => {
     }
 }, { connection: redisConfig });
 
-// Inicializar o agendamento de lembretes ao iniciar o servidor
+
 setupMonthlyReminder().catch(err => console.error('Erro ao configurar lembrete mensal:', err));
 
 app.listen(port, () => {
@@ -199,7 +195,7 @@ app.listen(port, () => {
     console.log('Certifique-se de que o PostgreSQL e o Redis estão rodando e acessíveis via variáveis de ambiente.');
 });
 
-// Função para criar a tabela de leads no PostgreSQL (se não existir)
+
 const createLeadsTable = async () => {
     try {
         await pool.query(`
@@ -217,6 +213,6 @@ const createLeadsTable = async () => {
     }
 };
 
-// Chamar a função para criar a tabela ao iniciar
+
 createLeadsTable();
 
