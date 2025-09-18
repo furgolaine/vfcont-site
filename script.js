@@ -1,7 +1,7 @@
 // Funcionalidades do site VF Contabilidade
 
 // Configuração do backend - usando variável de ambiente
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://vfcont-site-production.up.railway.app';
 
 // Inicialização do Google Maps
 function initMap() {
