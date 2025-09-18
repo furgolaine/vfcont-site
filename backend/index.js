@@ -21,7 +21,7 @@ const pool = new Pool({
 
 // Configuração do Redis para BullMQ
 const redisConfig = {
-    host: process.env.REDIS_URL,
+    host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT || 6379,
     password: process.env.REDIS_PASSWORD,
     tls: process.env.REDIS_TLS_URL ? { rejectUnauthorized: false } : undefined, // Adiciona suporte a TLS para Redis em produção
