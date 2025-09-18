@@ -2,50 +2,98 @@ const express = require('express');
 const { Pool } = require('pg');
 const Redis = require('ioredis');
 const { Queue, Worker } = require('bullmq');
+const axios = require('axios'); // Importar axios
+const crypto = require('crypto'); // Importar crypto para hashing
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
 // Configuração do PostgreSQL
 const pool = new Pool({
-    user: process.env.DB_USER || 'user',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'contabilidade_db',
-    password: process.env.DB_PASSWORD || 'password',
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 5432,
 });
 
 // Configuração do Redis para BullMQ
 const redisConfig = {
-    host: process.env.REDIS_HOST || 'localhost',
+    host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
+    password: process.env.REDIS_PASSWORD,
+    tls: process.env.REDIS_TLS_URL ? { rejectUnauthorized: false } : undefined, // Adiciona suporte a TLS para Redis em produção
 };
 
 // Fila para mensagens do WhatsApp
 const whatsappQueue = new Queue('whatsappMessages', { connection: redisConfig });
 
-// Simulação de API do WhatsApp
-const sendWhatsappMessage = async (lead) => {
-    console.log(`Simulando envio de mensagem WhatsApp para ${lead.telefone} (Lead ID: ${lead.id}):`);
-    console.log(`Olá ${lead.nome}! Agradecemos por usar nossa calculadora de IR. Em breve um de nossos especialistas entrará em contato.`);
-    // Aqui seria a integração real com a WhatsApp Cloud API
-    return { success: true, message: 'Mensagem WhatsApp simulada enviada.' };
+// Função para enviar mensagem via API do WhatsApp (implementação real)
+const sendWhatsappMessage = async (lead, messageBody) => {
+    try {
+        console.log(`Enviando mensagem WhatsApp para ${lead.telefone} (Lead ID: ${lead.id})`);
+        const response = await axios.post(
+            `https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+            {
+                messaging_product: 'whatsapp',
+                to: lead.telefone,
+                type: 'text',
+                text: { body: messageBody || `Olá ${lead.id}, obrigado por usar nossa calculadora.` }
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        console.log('Mensagem WhatsApp enviada com sucesso:', response.data);
+        return { success: true, message: 'Mensagem WhatsApp enviada.', data: response.data };
+    } catch (error) {
+        console.error('Erro ao enviar mensagem WhatsApp:', error.response ? error.response.data : error.message);
+        return { success: false, message: 'Erro ao enviar mensagem WhatsApp.' };
+    }
 };
 
-// Simulação de API do Facebook Conversions
+// Função para enviar conversão via API do Facebook Conversions (implementação real)
 const sendFacebookConversion = async (lead) => {
-    console.log(`Simulando envio de conversão para Facebook Conversions API para ${lead.email} (Lead ID: ${lead.id})`);
-    // Aqui seria a integração real com a Facebook Conversions API
-    return { success: true, message: 'Conversão Facebook simulada enviada.' };
+    try {
+        console.log(`Enviando conversão para Facebook Conversions API para ${lead.email} (Lead ID: ${lead.id})`);
+        const response = await axios.post(
+            `https://graph.facebook.com/v17.0/${process.env.FACEBOOK_PIXEL_ID}/events`,
+            {
+                data: [{
+                    event_name: 'Lead',
+                    event_time: Math.floor(Date.now() / 1000),
+                    user_data: {
+                        em: crypto.createHash('sha256').update(lead.email).digest('hex'),
+                        ph: crypto.createHash('sha256').update(lead.telefone).digest('hex'),
+                    },
+                    custom_data: {},
+                    action_source: 'website',
+                }],
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.FACEBOOK_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        console.log('Conversão Facebook enviada com sucesso:', response.data);
+        return { success: true, message: 'Conversão Facebook enviada.', data: response.data };
+    } catch (error) {
+        console.error('Erro ao enviar conversão Facebook:', error.response ? error.response.data : error.message);
+        return { success: false, message: 'Erro ao enviar conversão Facebook.' };
+    }
 };
 
 // Worker para processar a fila do WhatsApp
-new Worker('whatsappMessages', async (job) => {
-    const { lead } = job.data;
-    await sendWhatsappMessage(lead);
+new Worker("whatsappMessages", async (job) => {
+    const { lead, messageBody } = job.data;
+    await sendWhatsappMessage(lead, messageBody);
 }, { connection: redisConfig });
 
 // Endpoint para captação de leads
@@ -64,7 +112,7 @@ app.post('/leads', async (req, res) => {
         const newLead = result.rows[0];
 
         // Agendar mensagem WhatsApp após 10 minutos
-        await whatsappQueue.add('sendWhatsapp', { lead: newLead }, { delay: 10 * 60 * 1000 }); // 10 minutos
+        await whatsappQueue.add("sendWhatsapp", { lead: newLead, messageBody: `Olá ${newLead.id}, obrigado por usar nossa calculadora.` }, { delay: 10 * 60 * 1000 }); // 10 minutos
 
         // Enviar conversão para Facebook
         await sendFacebookConversion(newLead);
@@ -101,13 +149,9 @@ app.post('/calculate-ir', (req, res) => {
 });
 
 // Lógica para agendamento de lembretes de IR (exemplo com BullMQ)
-// Em um ambiente real, você usaria um cron job ou um agendador mais robusto
 const irReminderQueue = new Queue('irReminders', { connection: redisConfig });
 
 // Adicionar um job recorrente para o último dia de cada mês
-// Nota: Em produção, você configuraria isso para rodar em um servidor dedicado
-// e garantiria que o worker esteja sempre ativo.
-// Para fins de demonstração, vamos apenas adicionar um job que simula isso.
 const setupMonthlyReminder = async () => {
     // Remover jobs recorrentes existentes para evitar duplicação em testes
     await irReminderQueue.removeJobs('monthlyReminder');
@@ -125,12 +169,10 @@ const setupMonthlyReminder = async () => {
 new Worker('irReminders', async (job) => {
     if (job.data.type === 'IR_REMINDER') {
         console.log('Disparando lembrete mensal de IR...');
-        // Aqui você buscaria os usuários e enviaria as mensagens
-        // Por exemplo, buscar todos os leads e enviar uma mensagem simulada
         const leads = await pool.query('SELECT nome, telefone FROM leads');
         for (const lead of leads.rows) {
-            console.log(`Simulando envio de lembrete de IR para ${lead.nome} (${lead.telefone})`);
-            // sendWhatsappMessage({ nome: lead.nome, telefone: lead.telefone }); // Reutilizar função de envio
+            console.log(`Enviando lembrete de IR para ${lead.nome} (${lead.telefone})`);
+            await sendWhatsappMessage({ nome: lead.nome, telefone: lead.telefone, id: lead.id }, `Olá ${lead.nome}, já declarou seu IR este mês?`);
         }
     }
 }, { connection: redisConfig });
@@ -139,8 +181,8 @@ new Worker('irReminders', async (job) => {
 setupMonthlyReminder().catch(err => console.error('Erro ao configurar lembrete mensal:', err));
 
 app.listen(port, () => {
-    console.log(`Backend rodando em https://vfcont-site-production.up.railway.app:${port}`);
-    console.log('Certifique-se de que o PostgreSQL e o Redis estão rodando.');
+    console.log(`Backend rodando na porta: ${port}`);
+    console.log('Certifique-se de que o PostgreSQL e o Redis estão rodando e acessíveis via variáveis de ambiente.');
 });
 
 // Função para criar a tabela de leads no PostgreSQL (se não existir)
@@ -163,5 +205,4 @@ const createLeadsTable = async () => {
 
 // Chamar a função para criar a tabela ao iniciar
 createLeadsTable();
-
 
