@@ -110,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert(data.message);
                     showCalculator();
                 } else {
                     alert('Erro ao cadastrar lead: ' + data.error);
