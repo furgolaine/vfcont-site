@@ -27,7 +27,7 @@ if (redisUrl) {
         family: 0,
         host: parsedUrl.hostname,
         port: parsedUrl.port || 6379,
-        password: parsedUrl.auth ? parsedUrl.auth.split(':')[1] : undefined,
+        password: parsedUrl.password,
         tls: parsedUrl.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
     };
 } else {
