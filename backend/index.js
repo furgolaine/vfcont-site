@@ -5,9 +5,13 @@ const axios = require('axios');
 const crypto = require('crypto');
 const app = express();
 const port = process.env.PORT || 3000;
+const cors = require('cors');
+
+app.use(cors({
+    origin: 'https://cheerful-enjoyment-production.up.railway.app'
+}));
 
 app.use(express.json());
-
 
 const pool = new Pool({
     user: process.env.DB_USER,
