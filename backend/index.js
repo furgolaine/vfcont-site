@@ -1,11 +1,8 @@
 const express = require('express');
 const { Pool } = require('pg');
-const Redis = require('ioredis');
 const { Queue, Worker } = require('bullmq');
 const axios = require('axios');
 const crypto = require('crypto');
-const url = require('url');
-
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -25,8 +22,9 @@ let redisConfig;
 const redisUrl = process.env.REDIS_URL || process.env.REDIS_TLS_URL; // Prioriza REDIS_URL ou REDIS_TLS_URL
 
 if (redisUrl) {
-    const parsedUrl = url.parse(redisUrl);
+    const parsedUrl = new URL(redisUrl);
     redisConfig = {
+        family: 0,
         host: parsedUrl.hostname,
         port: parsedUrl.port || 6379,
         password: parsedUrl.auth ? parsedUrl.auth.split(':')[1] : undefined,
@@ -34,6 +32,7 @@ if (redisUrl) {
     };
 } else {
     redisConfig = {
+        family: 0,
         host: process.env.REDIS_HOST || 'localhost',
         port: process.env.REDIS_PORT || 6379,
         password: process.env.REDIS_PASSWORD,
